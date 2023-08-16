@@ -15,6 +15,8 @@ import (
 
 func (b *EntBackend) HasSBOM(ctx context.Context, spec *model.HasSBOMSpec) ([]*model.HasSbom, error) {
 	funcName := "HasSBOM"
+	ctx, span := tracer.Start(ctx, "HasSBOM")
+	defer span.End()
 	predicates := []predicate.BillOfMaterials{
 		optionalPredicate(spec.ID, IDEQ),
 		optionalPredicate(toLowerPtr(spec.Algorithm), billofmaterials.AlgorithmEQ),
@@ -55,6 +57,8 @@ func (b *EntBackend) HasSBOM(ctx context.Context, spec *model.HasSBOMSpec) ([]*m
 
 func (b *EntBackend) IngestHasSbom(ctx context.Context, subject model.PackageOrArtifactInput, spec model.HasSBOMInputSpec) (*model.HasSbom, error) {
 	funcName := "IngestHasSbom"
+	ctx, span := tracer.Start(ctx, funcName)
+	defer span.End()
 	if err := helper.ValidatePackageOrArtifactInput(&subject, "IngestHasSbom"); err != nil {
 		return nil, Errorf("%v ::  %s", funcName, err)
 	}

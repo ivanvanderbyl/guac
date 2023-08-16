@@ -16,6 +16,9 @@ import (
 )
 
 func (b *EntBackend) HasSlsa(ctx context.Context, spec *model.HasSLSASpec) ([]*model.HasSlsa, error) {
+	ctx, span := tracer.Start(ctx, "HasSlsa")
+	defer span.End()
+
 	query := []predicate.SLSAAttestation{
 		optionalPredicate(spec.ID, IDEQ),
 		optionalPredicate(spec.BuildType, slsaattestation.BuildTypeEQ),
@@ -53,6 +56,9 @@ func (b *EntBackend) HasSlsa(ctx context.Context, spec *model.HasSLSASpec) ([]*m
 }
 
 func (b *EntBackend) IngestSLSA(ctx context.Context, subject model.ArtifactInputSpec, builtFrom []*model.ArtifactInputSpec, builtBy model.BuilderInputSpec, slsa model.SLSAInputSpec) (*model.HasSlsa, error) {
+	ctx, span := tracer.Start(ctx, "IngestSLSA")
+	defer span.End()
+
 	if len(builtFrom) < 1 {
 		return nil, fmt.Errorf("must have at least 1 builtFrom")
 	}
@@ -68,6 +74,9 @@ func (b *EntBackend) IngestSLSA(ctx context.Context, subject model.ArtifactInput
 }
 
 func upsertSLSA(ctx context.Context, client *ent.Tx, subject model.ArtifactInputSpec, builtFrom []*model.ArtifactInputSpec, builtBy model.BuilderInputSpec, slsa model.SLSAInputSpec) (*ent.SLSAAttestation, error) {
+	ctx, span := tracer.Start(ctx, "upsertSLSA")
+	defer span.End()
+
 	builder, err := client.Builder.Query().Where(builderInputQueryPredicate(builtBy)).Only(ctx)
 	if err != nil {
 		return nil, err

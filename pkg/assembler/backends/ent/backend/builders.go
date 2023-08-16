@@ -12,6 +12,8 @@ import (
 )
 
 func (b *EntBackend) Builders(ctx context.Context, builderSpec *model.BuilderSpec) ([]*model.Builder, error) {
+	ctx, span := tracer.Start(ctx, "Builders")
+	defer span.End()
 	query := b.client.Builder.Query().
 		Where(builderQueryPredicate(builderSpec))
 
@@ -42,6 +44,8 @@ func builderInputQueryPredicate(spec model.BuilderInputSpec) predicate.Builder {
 
 func (b *EntBackend) IngestBuilder(ctx context.Context, build *model.BuilderInputSpec) (*model.Builder, error) {
 	funcName := "IngestBuilder"
+	ctx, span := tracer.Start(ctx, funcName)
+	defer span.End()
 	record, err := WithinTX(ctx, b.client, func(ctx context.Context) (*ent.Builder, error) {
 		client := ent.TxFromContext(ctx)
 		return upsertBuilder(ctx, client, build)

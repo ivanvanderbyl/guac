@@ -9,6 +9,9 @@ import (
 )
 
 func (b *EntBackend) HashEqual(ctx context.Context, spec *model.HashEqualSpec) ([]*model.HashEqual, error) {
+	ctx, span := tracer.Start(ctx, "HashEqual")
+	defer span.End()
+
 	if spec == nil {
 		return nil, nil
 	}
@@ -35,6 +38,9 @@ func (b *EntBackend) HashEqual(ctx context.Context, spec *model.HashEqualSpec) (
 }
 
 func (b *EntBackend) IngestHashEqual(ctx context.Context, artifact model.ArtifactInputSpec, equalArtifact model.ArtifactInputSpec, spec model.HashEqualInputSpec) (*model.HashEqual, error) {
+	ctx, span := tracer.Start(ctx, "IngestHashEqual")
+	defer span.End()
+
 	record, err := WithinTX(ctx, b.client, func(ctx context.Context) (*ent.HashEqual, error) {
 		tx := ent.TxFromContext(ctx)
 		return upsertHashEqual(ctx, tx, artifact, equalArtifact, spec)
@@ -47,6 +53,9 @@ func (b *EntBackend) IngestHashEqual(ctx context.Context, artifact model.Artifac
 }
 
 func upsertHashEqual(ctx context.Context, client *ent.Tx, artifactA model.ArtifactInputSpec, artifactB model.ArtifactInputSpec, spec model.HashEqualInputSpec) (*ent.HashEqual, error) {
+	ctx, span := tracer.Start(ctx, "upsertHashEqual")
+	defer span.End()
+
 	artifactARecord, err := client.Artifact.Query().Where(artifactQueryInputPredicates(artifactA)).Only(ctx)
 	if err != nil {
 		return nil, err

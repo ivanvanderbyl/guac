@@ -18,6 +18,9 @@ import (
 
 func (b *EntBackend) IsOccurrence(ctx context.Context, query *model.IsOccurrenceSpec) ([]*model.IsOccurrence, error) {
 	funcName := "IsOccurrence"
+	ctx, span := tracer.Start(ctx, funcName)
+	defer span.End()
+
 	if query != nil {
 		if err := helper.ValidatePackageOrSourceQueryFilter(query.Subject); err != nil {
 			return nil, gqlerror.Errorf("%v :: %v", funcName, err)
@@ -103,6 +106,9 @@ func (b *EntBackend) IngestOccurrence(ctx context.Context,
 	spec model.IsOccurrenceInputSpec,
 ) (*model.IsOccurrence, error) {
 	funcName := "IngestOccurrence"
+	ctx, span := tracer.Start(ctx, "IngestOccurrence")
+	defer span.End()
+
 	if err := helper.ValidatePackageOrSourceInput(&subject, "IngestOccurrence"); err != nil {
 		return nil, gqlerror.Errorf("%v :: %s", funcName, err)
 	}

@@ -10,9 +10,13 @@ import (
 	"github.com/guacsec/guac/pkg/assembler/backends/ent/predicate"
 	"github.com/guacsec/guac/pkg/assembler/graphql/model"
 	"github.com/vektah/gqlparser/v2/gqlerror"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 func (b *EntBackend) Artifacts(ctx context.Context, artifactSpec *model.ArtifactSpec) ([]*model.Artifact, error) {
+	ctx, span := tracer.Start(ctx, "Artifacts")
+	defer span.End()
+
 	query := b.client.Artifact.Query().
 		Where(artifactQueryPredicates(artifactSpec)).
 		Limit(MaxPageSize)
@@ -48,11 +52,17 @@ func toLowerPtr(s *string) *string {
 }
 
 func (b *EntBackend) IngestMaterials(ctx context.Context, materials []*model.ArtifactInputSpec) ([]*model.Artifact, error) {
+	ctx, span := tracer.Start(ctx, "IngestMaterials")
+	span.SetAttributes(attribute.Int("Count", len(materials)))
+	defer span.End()
 	return b.IngestArtifacts(ctx, materials)
 }
 
 func (b *EntBackend) IngestArtifacts(ctx context.Context, artifacts []*model.ArtifactInputSpec) ([]*model.Artifact, error) {
 	funcName := "IngestArtifacts"
+	ctx, span := tracer.Start(ctx, funcName)
+	span.SetAttributes(attribute.Int("Count", len(artifacts)))
+	defer span.End()
 	records, err := WithinTX(ctx, b.client, func(ctx context.Context) (*ent.Artifacts, error) {
 		client := ent.TxFromContext(ctx)
 		slc, err := ingestArtifacts(ctx, client, artifacts)
@@ -70,6 +80,8 @@ func (b *EntBackend) IngestArtifacts(ctx context.Context, artifacts []*model.Art
 }
 
 func (b *EntBackend) IngestArtifact(ctx context.Context, art *model.ArtifactInputSpec) (*model.Artifact, error) {
+	ctx, span := tracer.Start(ctx, "IngestArtifact")
+	defer span.End()
 	records, err := b.IngestArtifacts(ctx, []*model.ArtifactInputSpec{art})
 	if err != nil {
 		return nil, err
@@ -86,6 +98,10 @@ func ingestArtifacts(ctx context.Context, client *ent.Tx, artifacts []*model.Art
 	batches := chunk(artifacts, 100)
 	results := make(ent.Artifacts, 0)
 
+	ctx, span := tracer.Start(ctx, "ingestArtifacts")
+	span.SetAttributes(attribute.Int("Count", len(artifacts)), attribute.Int("Batches", len(batches)))
+	defer span.End()
+
 	for _, artifacts := range batches {
 		creates := make([]*ent.ArtifactCreate, len(artifacts))
 		predicates := make([]predicate.Artifact, len(artifacts))
@@ -99,7 +115,7 @@ func ingestArtifacts(ctx context.Context, client *ent.Tx, artifacts []*model.Art
 			OnConflict(
 				sql.ConflictColumns(artifact.FieldDigest),
 			).
-			UpdateNewValues().
+			DoNothing().
 			Exec(ctx)
 		if err != nil {
 			return nil, err

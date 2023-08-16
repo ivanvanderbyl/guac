@@ -9,6 +9,9 @@ import (
 )
 
 func (b *EntBackend) Osv(ctx context.Context, spec *model.OSVSpec) ([]*model.Osv, error) {
+	ctx, span := tracer.Start(ctx, "Osv")
+	defer span.End()
+
 	results, err := getAdvisories(ctx, b.client, &advisoryQuerySpec{
 		ID:    spec.ID,
 		OsvID: spec.OsvID,
@@ -21,6 +24,9 @@ func (b *EntBackend) Osv(ctx context.Context, spec *model.OSVSpec) ([]*model.Osv
 }
 
 func (b *EntBackend) IngestOsv(ctx context.Context, osv *model.OSVInputSpec) (*model.Osv, error) {
+	ctx, span := tracer.Start(ctx, "IngestOsv")
+	defer span.End()
+
 	advisory, err := WithinTX(ctx, b.client, func(ctx context.Context) (*ent.SecurityAdvisory, error) {
 		return upsertAdvisory(ctx, ent.TxFromContext(ctx), advisoryQuerySpec{
 			OsvID: &osv.OsvID,

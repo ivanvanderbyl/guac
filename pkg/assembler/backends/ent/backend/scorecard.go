@@ -2,7 +2,6 @@ package backend
 
 import (
 	"context"
-	"log"
 
 	"entgo.io/ent/dialect/sql"
 	"github.com/guacsec/guac/pkg/assembler/backends/ent"
@@ -15,6 +14,9 @@ import (
 )
 
 func (b *EntBackend) Scorecards(ctx context.Context, filter *model.CertifyScorecardSpec) ([]*model.CertifyScorecard, error) {
+	ctx, span := tracer.Start(ctx, "Scorecards")
+	defer span.End()
+
 	if filter == nil {
 		return nil, nil
 	}
@@ -63,6 +65,9 @@ func (b *EntBackend) Scorecards(ctx context.Context, filter *model.CertifyScorec
 
 // Mutations for evidence trees (read-write queries, assume software trees ingested)
 func (b *EntBackend) CertifyScorecard(ctx context.Context, source model.SourceInputSpec, scorecard model.ScorecardInputSpec) (*model.CertifyScorecard, error) {
+	ctx, span := tracer.Start(ctx, "CertifyScorecard")
+	defer span.End()
+
 	csc, err := WithinTX(ctx, b.client, func(ctx context.Context) (*ent.CertifyScorecard, error) {
 		return upsertScorecard(ctx, ent.TxFromContext(ctx), source, scorecard)
 	})
@@ -84,6 +89,9 @@ func (b *EntBackend) CertifyScorecard(ctx context.Context, source model.SourceIn
 }
 
 func upsertScorecard(ctx context.Context, tx *ent.Tx, source model.SourceInputSpec, scorecardInput model.ScorecardInputSpec) (*ent.CertifyScorecard, error) {
+	ctx, span := tracer.Start(ctx, "upsertScorecard")
+	defer span.End()
+
 	checks := make([]*model.ScorecardCheck, len(scorecardInput.Checks))
 	for i, check := range scorecardInput.Checks {
 		checks[i] = &model.ScorecardCheck{
@@ -115,8 +123,6 @@ func upsertScorecard(ctx context.Context, tx *ent.Tx, source model.SourceInputSp
 	if err != nil {
 		return nil, err
 	}
-
-	log.Println("Source ID", src.ID)
 
 	id, err := tx.CertifyScorecard.Create().
 		SetScorecardID(sc).

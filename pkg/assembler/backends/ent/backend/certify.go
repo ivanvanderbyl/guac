@@ -17,6 +17,8 @@ type certificationInputSpec interface {
 }
 
 func (b *EntBackend) CertifyBad(ctx context.Context, filter *model.CertifyBadSpec) ([]*model.CertifyBad, error) {
+	ctx, span := tracer.Start(ctx, "CertifyBad")
+	defer span.End()
 	records, err := queryCertifications(ctx, b.client, certification.TypeBAD, filter)
 	if err != nil {
 		return nil, err
@@ -26,6 +28,8 @@ func (b *EntBackend) CertifyBad(ctx context.Context, filter *model.CertifyBadSpe
 }
 
 func (b *EntBackend) CertifyGood(ctx context.Context, filter *model.CertifyGoodSpec) ([]*model.CertifyGood, error) {
+	ctx, span := tracer.Start(ctx, "CertifyGood")
+	defer span.End()
 	if filter == nil {
 		return nil, nil
 	}
@@ -40,6 +44,8 @@ func (b *EntBackend) CertifyGood(ctx context.Context, filter *model.CertifyGoodS
 
 func (b *EntBackend) IngestCertifyBad(ctx context.Context, subject model.PackageSourceOrArtifactInput, pkgMatchType *model.MatchFlags, spec model.CertifyBadInputSpec) (*model.CertifyBad, error) {
 	funcName := "IngestCertifyBad"
+	ctx, span := tracer.Start(ctx, funcName)
+	defer span.End()
 	if err := helper.ValidatePackageSourceOrArtifactInput(&subject, "bad subject"); err != nil {
 		return nil, Errorf("%v ::  %s", funcName, err)
 	}
@@ -56,6 +62,8 @@ func (b *EntBackend) IngestCertifyBad(ctx context.Context, subject model.Package
 
 func (b *EntBackend) IngestCertifyGood(ctx context.Context, subject model.PackageSourceOrArtifactInput, pkgMatchType *model.MatchFlags, spec model.CertifyGoodInputSpec) (*model.CertifyGood, error) {
 	funcName := "IngestCertifyGood"
+	ctx, span := tracer.Start(ctx, funcName)
+	defer span.End()
 	if err := helper.ValidatePackageSourceOrArtifactInput(&subject, "bad subject"); err != nil {
 		return nil, Errorf("%v ::  %s", funcName, err)
 	}
@@ -71,6 +79,8 @@ func (b *EntBackend) IngestCertifyGood(ctx context.Context, subject model.Packag
 }
 
 func queryCertifications(ctx context.Context, client *ent.Client, typ certification.Type, filter *model.CertifyBadSpec) ([]*ent.Certification, error) {
+	ctx, span := tracer.Start(ctx, "queryCertifications")
+	defer span.End()
 	if filter != nil {
 		if err := helper.ValidatePackageSourceOrArtifactQueryFilter(filter.Subject); err != nil {
 			return nil, err
@@ -110,6 +120,9 @@ func queryCertifications(ctx context.Context, client *ent.Client, typ certificat
 }
 
 func upsertCertification[T certificationInputSpec](ctx context.Context, client *ent.Tx, subject model.PackageSourceOrArtifactInput, pkgMatchType *model.MatchFlags, spec T) (*ent.Certification, error) {
+	ctx, span := tracer.Start(ctx, "upsertCertification")
+	defer span.End()
+
 	insert := client.Certification.Create()
 
 	switch v := any(spec).(type) {

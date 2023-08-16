@@ -19,6 +19,8 @@ type advisoryQuerySpec struct {
 }
 
 func (b *EntBackend) Cve(ctx context.Context, spec *model.CVESpec) ([]*model.Cve, error) {
+	ctx, span := tracer.Start(ctx, "Cve")
+	defer span.End()
 	results, err := getAdvisories(ctx, b.client, &advisoryQuerySpec{
 		ID:    spec.ID,
 		CveID: spec.CveID,
@@ -32,6 +34,8 @@ func (b *EntBackend) Cve(ctx context.Context, spec *model.CVESpec) ([]*model.Cve
 }
 
 func (b *EntBackend) IngestCve(ctx context.Context, spec *model.CVEInputSpec) (*model.Cve, error) {
+	ctx, span := tracer.Start(ctx, "IngestCve")
+	defer span.End()
 	advisory, err := WithinTX(ctx, b.client, func(ctx context.Context) (*ent.SecurityAdvisory, error) {
 		return upsertAdvisory(ctx, ent.TxFromContext(ctx), advisoryQuerySpec{
 			CveID: &spec.CveID,
@@ -57,6 +61,9 @@ func toModelCVE(cve *ent.SecurityAdvisory) *model.Cve {
 }
 
 func getAdvisory(ctx context.Context, client *ent.Client, query *advisoryQuerySpec) (*ent.SecurityAdvisory, error) {
+	ctx, span := tracer.Start(ctx, "getAdvisory")
+	defer span.End()
+
 	results, err := getAdvisories(ctx, client, query)
 	if err != nil {
 		return nil, err
@@ -74,6 +81,8 @@ func getAdvisory(ctx context.Context, client *ent.Client, query *advisoryQuerySp
 }
 
 func getAdvisories(ctx context.Context, client *ent.Client, query *advisoryQuerySpec) (ent.SecurityAdvisories, error) {
+	ctx, span := tracer.Start(ctx, "getAdvisories")
+	defer span.End()
 	results, err := client.SecurityAdvisory.Query().
 		Where(
 			optionalPredicate(query.CveID, securityadvisory.CveIDEqualFold),
@@ -89,6 +98,8 @@ func getAdvisories(ctx context.Context, client *ent.Client, query *advisoryQuery
 }
 
 func upsertAdvisory(ctx context.Context, client *ent.Tx, spec advisoryQuerySpec) (*ent.SecurityAdvisory, error) {
+	ctx, span := tracer.Start(ctx, "upsertAdvisory")
+	defer span.End()
 	insert := client.SecurityAdvisory.Create()
 
 	columns := []string{}

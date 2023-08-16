@@ -15,6 +15,9 @@ import (
 )
 
 func (b *EntBackend) PkgEqual(ctx context.Context, spec *model.PkgEqualSpec) ([]*model.PkgEqual, error) {
+	ctx, span := tracer.Start(ctx, "PkgEqual")
+	defer span.End()
+
 	records, err := b.client.PkgEqual.Query().
 		Where(pkgEqualQueryPredicates(spec)).
 		WithPackages(withPackageVersionTree()).
@@ -27,6 +30,9 @@ func (b *EntBackend) PkgEqual(ctx context.Context, spec *model.PkgEqualSpec) ([]
 }
 
 func (b *EntBackend) IngestPkgEqual(ctx context.Context, pkg model.PkgInputSpec, depPkg model.PkgInputSpec, pkgEqual model.PkgEqualInputSpec) (*model.PkgEqual, error) {
+	ctx, span := tracer.Start(ctx, "IngestPkgEqual")
+	defer span.End()
+
 	record, err := WithinTX(ctx, b.client, func(ctx context.Context) (*ent.PkgEqual, error) {
 		return upsertPackageEqual(ctx, ent.TxFromContext(ctx), pkg, depPkg, pkgEqual)
 	})
@@ -38,6 +44,9 @@ func (b *EntBackend) IngestPkgEqual(ctx context.Context, pkg model.PkgInputSpec,
 }
 
 func upsertPackageEqual(ctx context.Context, client *ent.Tx, pkgA model.PkgInputSpec, pkgB model.PkgInputSpec, spec model.PkgEqualInputSpec) (*ent.PkgEqual, error) {
+	ctx, span := tracer.Start(ctx, "upsertPackageEqual")
+	defer span.End()
+
 	pkgARecord, err := client.PackageVersion.Query().Where(packageVersionInputQuery(pkgA)).Only(ctx)
 	if err != nil {
 		return nil, err

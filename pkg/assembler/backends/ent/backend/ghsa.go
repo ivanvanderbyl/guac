@@ -8,6 +8,8 @@ import (
 )
 
 func (b *EntBackend) Ghsa(ctx context.Context, spec *model.GHSASpec) ([]*model.Ghsa, error) {
+	ctx, span := tracer.Start(ctx, "Ghsa")
+	defer span.End()
 	results, err := getAdvisories(ctx, b.client, &advisoryQuerySpec{
 		ID:     spec.ID,
 		GhsaID: spec.GhsaID,
@@ -20,6 +22,8 @@ func (b *EntBackend) Ghsa(ctx context.Context, spec *model.GHSASpec) ([]*model.G
 }
 
 func (b *EntBackend) IngestGhsa(ctx context.Context, ghsa *model.GHSAInputSpec) (*model.Ghsa, error) {
+	ctx, span := tracer.Start(ctx, "IngestGhsa")
+	defer span.End()
 	advisory, err := WithinTX(ctx, b.client, func(ctx context.Context) (*ent.SecurityAdvisory, error) {
 		return upsertAdvisory(ctx, ent.TxFromContext(ctx), advisoryQuerySpec{
 			GhsaID: &ghsa.GhsaID,

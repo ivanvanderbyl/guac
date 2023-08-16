@@ -12,6 +12,8 @@ import (
 
 func (b *EntBackend) IsDependency(ctx context.Context, spec *model.IsDependencySpec) ([]*model.IsDependency, error) {
 	funcName := "IsDependency"
+	ctx, span := tracer.Start(ctx, "IsDependency")
+	defer span.End()
 	if spec == nil {
 		return nil, nil
 	}
@@ -47,6 +49,9 @@ func (b *EntBackend) IsDependency(ctx context.Context, spec *model.IsDependencyS
 }
 
 func (b *EntBackend) IngestDependencies(ctx context.Context, pkgs []*model.PkgInputSpec, depPkgs []*model.PkgInputSpec, dependencies []*model.IsDependencyInputSpec) ([]*model.IsDependency, error) {
+	ctx, span := tracer.Start(ctx, "IngestDependencies")
+	defer span.End()
+
 	if len(pkgs) != len(depPkgs) {
 		return nil, Errorf("uneven packages and dependent packages for ingestion")
 	}
@@ -69,6 +74,8 @@ func (b *EntBackend) IngestDependencies(ctx context.Context, pkgs []*model.PkgIn
 
 func (b *EntBackend) IngestDependency(ctx context.Context, pkg model.PkgInputSpec, depPkg model.PkgInputSpec, spec model.IsDependencyInputSpec) (*model.IsDependency, error) {
 	funcName := "IngestDependency"
+	ctx, span := tracer.Start(ctx, funcName)
+	defer span.End()
 
 	recordID, err := WithinTX(ctx, b.client, func(ctx context.Context) (*int, error) {
 		client := ent.TxFromContext(ctx)

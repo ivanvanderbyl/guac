@@ -27,6 +27,14 @@ services:
     volumes:
       - ./container_files/pg:/var/lib/postgresql/data
 
+  jaeger:
+    image: jaegertracing/all-in-one
+    ports:
+      - "16686:16686"
+      - "14268:14268"
+      - "4318:4318"
+    networks: [frontend]
+
   nats:
     networks: [frontend]
     image: "nats:2.9.17-alpine"

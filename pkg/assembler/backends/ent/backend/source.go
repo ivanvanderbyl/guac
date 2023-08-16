@@ -2,7 +2,6 @@ package backend
 
 import (
 	"context"
-	"log"
 
 	"entgo.io/ent/dialect/sql"
 	"github.com/guacsec/guac/pkg/assembler/backends/ent"
@@ -15,6 +14,9 @@ import (
 )
 
 func (b *EntBackend) HasSourceAt(ctx context.Context, filter *model.HasSourceAtSpec) ([]*model.HasSourceAt, error) {
+	ctx, span := tracer.Start(ctx, "HasSourceAt")
+	defer span.End()
+
 	query := []predicate.HasSourceAt{
 		optionalPredicate(filter.ID, IDEQ),
 		optionalPredicate(filter.Collector, hassourceat.CollectorEQ),
@@ -51,6 +53,9 @@ func (b *EntBackend) HasSourceAt(ctx context.Context, filter *model.HasSourceAtS
 }
 
 func (b *EntBackend) IngestHasSourceAt(ctx context.Context, pkg model.PkgInputSpec, pkgMatchType model.MatchFlags, source model.SourceInputSpec, hasSourceAt model.HasSourceAtInputSpec) (*model.HasSourceAt, error) {
+	ctx, span := tracer.Start(ctx, "IngestHasSourceAt")
+	defer span.End()
+
 	record, err := WithinTX(ctx, b.client, func(ctx context.Context) (*ent.HasSourceAt, error) {
 		return upsertHasSourceAt(ctx, ent.TxFromContext(ctx), pkg, pkgMatchType, source, hasSourceAt)
 	})
@@ -62,6 +67,9 @@ func (b *EntBackend) IngestHasSourceAt(ctx context.Context, pkg model.PkgInputSp
 }
 
 func upsertHasSourceAt(ctx context.Context, client *ent.Tx, pkg model.PkgInputSpec, pkgMatchType model.MatchFlags, source model.SourceInputSpec, spec model.HasSourceAtInputSpec) (*ent.HasSourceAt, error) {
+	ctx, span := tracer.Start(ctx, "upsertHasSourceAt")
+	defer span.End()
+
 	src, err := client.SourceName.Query().Where(sourceInputQuery(source)).Only(ctx)
 	if err != nil {
 		return nil, err
@@ -115,6 +123,9 @@ func upsertHasSourceAt(ctx context.Context, client *ent.Tx, pkg model.PkgInputSp
 }
 
 func (b *EntBackend) Sources(ctx context.Context, filter *model.SourceSpec) ([]*model.Source, error) {
+	ctx, span := tracer.Start(ctx, "Sources")
+	defer span.End()
+
 	if filter != nil && filter.Commit != nil && filter.Tag != nil {
 		if *filter.Commit != "" && *filter.Tag != "" {
 			return nil, Errorf("Passing both commit and tag selectors is an error")
@@ -136,6 +147,9 @@ func (b *EntBackend) Sources(ctx context.Context, filter *model.SourceSpec) ([]*
 }
 
 func (b *EntBackend) IngestSources(ctx context.Context, sources []*model.SourceInputSpec) ([]*model.Source, error) {
+	ctx, span := tracer.Start(ctx, "IngestSources")
+	defer span.End()
+
 	results, err := WithinTX(ctx, b.client, func(ctx context.Context) (*[]*ent.SourceName, error) {
 		results := make([]*ent.SourceName, len(sources))
 		var err error
@@ -156,6 +170,9 @@ func (b *EntBackend) IngestSources(ctx context.Context, sources []*model.SourceI
 }
 
 func (b *EntBackend) IngestSource(ctx context.Context, src model.SourceInputSpec) (*model.Source, error) {
+	ctx, span := tracer.Start(ctx, "IngestSource")
+	defer span.End()
+
 	sourceName, err := WithinTX(ctx, b.client, func(ctx context.Context) (*ent.SourceName, error) {
 		return upsertSource(ctx, ent.TxFromContext(ctx), src)
 	})
@@ -167,6 +184,9 @@ func (b *EntBackend) IngestSource(ctx context.Context, src model.SourceInputSpec
 }
 
 func upsertSource(ctx context.Context, client *ent.Tx, src model.SourceInputSpec) (*ent.SourceName, error) {
+	ctx, span := tracer.Start(ctx, "upsersSource")
+	defer span.End()
+
 	sourceTypeID, err := client.SourceType.Create().
 		SetType(src.Type).
 		OnConflict(
@@ -210,7 +230,6 @@ func upsertSource(ctx context.Context, client *ent.Tx, src model.SourceInputSpec
 	if err != nil {
 		return nil, err
 	}
-	log.Println(sourceNameID, src)
 
 	return client.SourceName.Query().
 		Where(sourcename.ID(sourceNameID)).

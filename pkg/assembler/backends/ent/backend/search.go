@@ -30,6 +30,9 @@ import (
 // Warning: This is an OPTIONAL feature. Backends are not required to
 // implement this API.
 func (b *EntBackend) FindSoftware(ctx context.Context, searchText string) ([]model.PackageSourceOrArtifact, error) {
+	ctx, span := tracer.Start(ctx, "FindSoftware")
+	defer span.End()
+
 	// Arbitrarily only search if the search text is longer than 2 characters
 	// Search Artifacts
 	results := make([]model.PackageSourceOrArtifact, 0)

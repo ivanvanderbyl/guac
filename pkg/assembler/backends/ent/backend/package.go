@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha1"
+	stdsql "database/sql"
 	"fmt"
 	"sort"
 
@@ -17,9 +18,13 @@ import (
 	"github.com/guacsec/guac/pkg/assembler/backends/helper"
 	"github.com/guacsec/guac/pkg/assembler/graphql/model"
 	"github.com/pkg/errors"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 func (b *EntBackend) Packages(ctx context.Context, pkgSpec *model.PkgSpec) ([]*model.Package, error) {
+	ctx, span := tracer.Start(ctx, "Packages")
+	defer span.End()
+
 	if pkgSpec == nil {
 		pkgSpec = &model.PkgSpec{}
 	}
@@ -72,19 +77,41 @@ func (b *EntBackend) Packages(ctx context.Context, pkgSpec *model.PkgSpec) ([]*m
 }
 
 func (b *EntBackend) IngestPackages(ctx context.Context, pkgs []*model.PkgInputSpec) ([]*model.Package, error) {
+	ctx, span := tracer.Start(ctx, "IngestPackages")
+	span.SetAttributes(attribute.Int("Count", len(pkgs)))
+	defer span.End()
+
+	// p := pool.New().
+	// 	WithMaxGoroutines(10).
+	// 	WithContext(ctx).
+	// 	WithCancelOnError()
+
 	// FIXME: (ivanvanderbyl) This will be suboptimal because we can't batch insert relations with upserts. See Readme.
-	models := make([]*model.Package, len(pkgs))
-	for i, pkg := range pkgs {
+
+	models := make([]*model.Package, 0, len(pkgs))
+	for _, pkg := range pkgs {
+		// p.Go(func(ctx context.Context) error {
 		p, err := b.IngestPackage(ctx, *pkg)
 		if err != nil {
 			return nil, err
 		}
-		models[i] = p
+		models = append(models, p)
+		// return nil
+		// })
 	}
+
+	// err := p.Wait()
+	// if err != nil {
+	// 	return nil, err
+	// }
+
 	return models, nil
 }
 
 func (b *EntBackend) IngestPackage(ctx context.Context, pkg model.PkgInputSpec) (*model.Package, error) {
+	ctx, span := tracer.Start(ctx, "IngestPackage")
+	defer span.End()
+
 	pkgVersion, err := WithinTX(ctx, b.client, func(ctx context.Context) (*ent.PackageVersion, error) {
 		p, err := upsertPackage(ctx, ent.TxFromContext(ctx), pkg)
 		if err != nil {
@@ -102,6 +129,8 @@ func (b *EntBackend) IngestPackage(ctx context.Context, pkg model.PkgInputSpec) 
 // upsertPackage is a helper function to create or update a package node and its associated edges.
 // It is used in multiple places, so we extract it to a function.
 func upsertPackage(ctx context.Context, client *ent.Tx, pkg model.PkgInputSpec) (*ent.PackageVersion, error) {
+	ctx, span := tracer.Start(ctx, "upsertPackage")
+	defer span.End()
 
 	_, err := client.PackageType.Create().
 		SetType(pkg.Type).
